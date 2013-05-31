@@ -5,9 +5,10 @@ An implementation of common WordNet and Distributional similarity measures.
 
 To Build
 --------
-Set `SCALA_HOME` in the Makefile as appropriate, and set `JAVANLP_HOME` to the
-  location of CoreNLP. Or, use the included `dist/sim-release.jar` or
-  `dist/sim.jar` (without dependencies bundled) files.
+Set `SCALA_HOME` in the Makefile as appropriate,
+Or, use the included `dist/sim-release.jar` (with dependencies bundled
+-- work out licensing at your own risk!) or
+`dist/sim.jar` (without dependencies bundled) files.
 
 
 To Use

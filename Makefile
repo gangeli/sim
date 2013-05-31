@@ -55,6 +55,12 @@ ${DIST}/sim-release.jar: ${DIST}/sim.jar
 	rm -r ${TMP}/breeze-math/META-INF
 	jar uf ${DIST}/sim-release.jar -C ${TMP}/breeze-math/ .
 	rm -rf ${TMP}/breeze-math
+	#((stanford-corenlp-1.3.5.jar))
+	rm -rf ${TMP}/stanford-corenlp-1.3.5.jar
+	unzip ${LIB}/stanford-corenlp-1.3.5.jar -d ${TMP}/stanford-corenlp-1.3.5.jar > /dev/null
+	rm -r ${TMP}/stanford-corenlp-1.3.5.jar/META-INF
+	jar uf ${DIST}/sim-release.jar -C ${TMP}/stanford-corenlp-1.3.5.jar/ .
+	rm -rf ${TMP}/stanford-corenlp-1.3.5.jar
 
 doc:
 	@echo "Documenting (${SCALADOC})..."
