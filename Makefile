@@ -16,7 +16,7 @@ DIST=dist
 TMP=tmp
 DOC=scaladoc
 # (classpaths)
-JAVANLP=${JAVANLP_HOME}/projects/core/classes:${JAVANLP_HOME}/projects/more/classes:${JAVANLP_HOME}/projects/research/classes:${JAVANLP_HOME}/projects/scala-2.10/classes
+JAVANLP=${CORENLP_HOME}/projects/core/classes:${JAVANLP_HOME}/projects/more/classes:${JAVANLP_HOME}/projects/research/classes:${JAVANLP_HOME}/projects/scala-2.10/classes
 CP=${JAVANLP}:${LIB}/jaws.jar:${LIB}/breeze-math.jar
 
 # -- BUILD --
