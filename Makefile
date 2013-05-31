@@ -16,11 +16,11 @@ DIST=dist
 TMP=tmp
 DOC=scaladoc
 # (classpaths)
-JAVANLP=${CORENLP_HOME}/projects/core/classes:${JAVANLP_HOME}/projects/more/classes:${JAVANLP_HOME}/projects/research/classes:${JAVANLP_HOME}/projects/scala-2.10/classes
-CP=${JAVANLP}:${LIB}/jaws.jar:${LIB}/breeze-math.jar
+CORENLP=${LIB}/stanford-corenlp-1.3.5.jar
+CP=${CORENLP}:${LIB}/jaws.jar:${LIB}/breeze-math.jar
 
 # -- BUILD --
-${DIST}/sim.jar: $(wildcard src/sim/*.scala)
+${DIST}/sim.jar: $(wildcard src/sim/*.scala) $(wildcard src/edu/stanford/nlp/*.scala)
 	@mkdir -p ${BUILD}
 	@echo "Compiling (${SCALAC})..."
 	@${SCALAC} -deprecation -d ${BUILD} -cp ${CP} `find ${SRC} -name "*.scala"` `find ${SRC} -name "*.java"`
