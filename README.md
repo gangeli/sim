@@ -30,7 +30,7 @@ Common information is cached (as are the similarity values themselves),
 so don't be afraid to call the functions multiple times!
 
 Furthermore, if you have the models in implicit scope, you can call
-`Similarity(x, y), which will yield a `Similarity` object implementing all
+`Similarity(x, y)`, which will yield a `Similarity` object implementing all
 the metrics. For example:
 
      implicit val wordnet = Ontology.load("aux/ontology.ser.gz")
