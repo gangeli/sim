@@ -31,7 +31,7 @@ so don't be afraid to call the functions multiple times!
 
 Furthermore, if you have the models in implicit scope, you can call
 `Similarity(x, y)`, which will yield a `Similarity` object implementing all
-the metrics. For example:
+the metrics. For example (from the project root):
       
      $ scala -Dwordnet.database.dir=aux/WordNet-3.0/dict -J-mx4g -cp dist/sim-release.jar
      
@@ -41,3 +41,9 @@ the metrics. For example:
      scala> val sim = Similarity("cat", "dog")
      scala> println(sim.lesk)
      scala> println(sim.cos)
+
+For Java users, the `aux/JavaExample.java` file has a minimal Java program
+which uses the resource. It can be compiled and run with (from the project root):
+
+     $ javac -cp dist/sim-release.jar aux/JavaExample.java
+     $ java  -cp dist/sim-release.jar:aux -Dwordnet.database.dir=aux/WordNet-3.0/dict -mx4g JavaExample
