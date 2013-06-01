@@ -1,0 +1,89 @@
+#!/bin/bash
+exec scala -J-Xmx6g -classpath ../dist/sim-release.jar -Dwordnet.database.dir=./WordNet-3.0/dict "$0" "$@"
+!#
+
+/*
+NOTES:
+  - All POS tag groups have a root; there is a single root joining all
+    POS tag roots.
+*/
+
+//(scala)
+import scala.collection.JavaConversions._
+//(java)
+import java.io._
+//(jaws)
+import edu.smu.tspell.wordnet._
+//(lib)
+import edu.stanford.nlp.util.logging.StanfordRedwoodConfiguration
+import edu.stanford.nlp.util.logging.Redwood.Util._
+//(concept)
+import org.goobs.sim._
+import Util._
+import Ontology._
+
+//------------------------------------------------------------------------------
+// MAIN
+//------------------------------------------------------------------------------
+if (args.length < 2){ 
+  println("Usage: mk_ontology [weighted_vocab] [output_name]")
+  System.exit(1)
+}
+val weightedVocab = args(0)
+val outputName = args(1)
+
+// -- Redwood
+val props = new java.util.Properties();
+props.setProperty("log.neatExit", "true");
+props.setProperty("log.collapse", "approximate");
+props.setProperty("log.toStderr", "false");
+props.setProperty("log.captureStderr", "false");
+StanfordRedwoodConfiguration.apply(props);
+
+startTrack("mk_ontology")
+
+// -- Read Vocabulary
+forceTrack("Reading weighted vocabulary")
+import scala.io.Source
+val phrases:Map[Phrase,Long] =
+  Source.fromFile(weightedVocab).getLines()
+    .foldLeft(Map[Phrase,Long]()){ case (phrases:Map[Phrase,Long],
+                                         line:String) =>
+      val fields = line.split("\t")
+      val phrase:Phrase = fields(0).split(" ").toList
+      phrases + ( (phrase, fields(1).toLong) )
+  }
+endTrack("Reading weighted vocabulary")
+
+// -- Create Ontology
+forceTrack("Creating Ontology")
+val ontology
+  = (Ontology.empty ++ phrases.keys)
+      .mapWithPhrase{ (phrase:Phrase, n:RealNode, cached:Option[RealNode]) =>
+        log("count of " + n + " is " + phrases(phrase))
+        new RealNode(n.synset,
+                     {cached match {case Some(c) => c.count
+                                   case None    => n.count }} + phrases(phrase),
+                     n.hypernyms) }
+      .declareHypernyms{ (synset:Synset) => synset match {
+        case (noun:NounSynset) => noun.getHypernyms() ++ noun.getInstanceHypernyms
+        case (verb:VerbSynset) => verb.getHypernyms()
+        case _ => List()
+      }}
+// (check ontology)
+if (ontology.root.subtreeCount != ontology.totalCount) {
+  throw new IllegalStateException("Counts are wrong: root=" +
+    ontology.root.subtreeCount + " ontology=" + ontology.totalCount)
+} else {
+  log("Root count is correct")
+}
+endTrack("Creating Ontology")
+
+// -- Write Ontology
+ontology.save(outputName + ".ser.gz")
+
+forceTrack("Checking ontology loadable")
+Ontology.load(outputName + ".ser.gz")
+endTrack("Checking ontology loadable")
+
+endTrack("mk_ontology")

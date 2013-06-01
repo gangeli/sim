@@ -33,6 +33,7 @@ Furthermore, if you have the models in implicit scope, you can call
 `Similarity(x, y)`, which will yield a `Similarity` object implementing all
 the metrics. For example:
 
+     import org.goobs.sim._
      implicit val wordnet = Ontology.load("aux/ontology.ser.gz")
      implicit val distsim = DistSim.load("aux/distsim.ser.gz")
      val sim = Similarity("cat", "dog")

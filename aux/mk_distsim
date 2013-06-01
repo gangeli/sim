@@ -1,0 +1,58 @@
+#!/bin/bash
+exec scala -J-Xmx6g -classpath ../dist/sim-release.jar -Dwordnet.database.dir=./WordNet-3.0/dict "$0" "$@"
+!#
+
+//(scala)
+import scala.collection.JavaConversions._
+import scala.io.Source
+//(java)
+import java.io._
+//(lib)
+import edu.stanford.nlp.util.logging.StanfordRedwoodConfiguration
+import edu.stanford.nlp.util.logging.Redwood.Util._
+//(breeze)
+import breeze.linalg._
+//(concept)
+import org.goobs.sim._
+import org.goobs.sim.DistSim.WordVector
+
+if (args.length < 2){ 
+  println("Usage: mk_distsim [weighted_vocab] [output_name]")
+  System.exit(1)
+}
+val weightedVocab = args(0)
+val outputName = args(1)
+
+// -- Read Vocabulary
+forceTrack("Reading weighted vocabulary")
+val words:Set[String] = 
+  Source.fromFile(weightedVocab).getLines()
+    .foldLeft(Set[String]()){ case (words:Set[String], line:String) =>
+      val fields = line.split("\t")
+      words ++ fields(0).split("_").map{ _.toLowerCase }
+  }
+endTrack("Reading weighted vocabulary")
+
+// -- Read Vocabulary
+forceTrack("Reading vectors")
+val vectors:Map[String,WordVector] =
+  Source.fromFile("word_vectors/socher.txt").getLines()
+        .map{ (line:String) =>
+    val fields:Array[String] = line.split("""\s+""")
+    val word:String = fields(0)
+    val vector = fields.slice(1, fields.length).map{ _.toDouble }
+    if (!vector.forall( !_.isNaN )) {
+      throw new IllegalStateException("NaN in vector")
+    }
+    if (words(word.toLowerCase) || ClosedClassWords(word.toLowerCase) ||
+        word.toLowerCase == "uuunkkk") {
+      Some((word.toLowerCase, vector))
+    } else {
+      None
+    }
+  }.filter( _.isDefined ).map( _.get ).map{ case (w:String, vect:Array[Double]) =>
+    (w, new DenseVector(vect))
+  }.toMap
+endTrack("Reading vectors")
+
+new DistSim(vectors).save(outputName + ".ser.gz")
