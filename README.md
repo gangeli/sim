@@ -32,10 +32,12 @@ so don't be afraid to call the functions multiple times!
 Furthermore, if you have the models in implicit scope, you can call
 `Similarity(x, y)`, which will yield a `Similarity` object implementing all
 the metrics. For example:
-
-     import org.goobs.sim._
-     implicit val wordnet = Ontology.load("aux/ontology.ser.gz")
-     implicit val distsim = DistSim.load("aux/distsim.ser.gz")
-     val sim = Similarity("cat", "dog")
-     println(sim.lesk)
-     println(sim.cos)
+      
+     $ scala -Dwordnet.database.dir=aux/WordNet-3.0/dict -J-mx4g -cp dist/sim-release.jar
+     
+     scala> import org.goobs.sim._
+     scala> implicit val wordnet = Ontology.load("aux/ontology.ser.gz")
+     scala> implicit val distsim = DistSim.load("aux/distsim.ser.gz")
+     scala> val sim = Similarity("cat", "dog")
+     scala> println(sim.lesk)
+     scala> println(sim.cos)
