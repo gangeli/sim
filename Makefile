@@ -1,6 +1,9 @@
 # -- VARIABLES --
 # (places -- overwrite me!)
 SCALA_HOME=${HOME}/programs/scala
+CORENLP_MODELS=${HOME}/lib/corenlp-models.jar
+# (places -- optionally overwrite me)
+CORENLP=${LIB}/stanford-corenlp-1.3.5.jar
 # (programs)
 JAVAC=javac
 SCALAC=${SCALA_HOME}/bin/scalac
@@ -16,11 +19,11 @@ DIST=dist
 TMP=tmp
 DOC=scaladoc
 # (classpaths)
-CORENLP=${LIB}/stanford-corenlp-1.3.5.jar
 CP=${CORENLP}:${LIB}/jaws.jar:${LIB}/breeze-math.jar
+TEST_CP=${CP}:${LIB}/scalatest.jar::${DIST}/sim.jar
 
 # -- BUILD --
-${DIST}/sim.jar: $(wildcard src/sim/*.scala) $(wildcard src/edu/stanford/nlp/*.scala)
+${DIST}/sim.jar: $(wildcard src/org/goobs/sim/*.scala) $(wildcard src/edu/stanford/nlp/*.scala)
 	@mkdir -p ${BUILD}
 	@echo "Compiling (${SCALAC})..."
 	@${SCALAC} -deprecation -d ${BUILD} -cp ${CP} `find ${SRC} -name "*.scala"` `find ${SRC} -name "*.java"`
@@ -67,13 +70,27 @@ doc:
 	mkdir -p ${DOC}
 	@${SCALADOC} -d ${DOC} -cp ${CP} `find ${SRC} -name "*.scala"` `find ${SRC} -name "*.java"`
 
+# -- TESTS --
+${DIST}/test.jar: $(wildcard test/src/org/goobs/sim/*.java) $(wildcard test/src/org/goobs/sim/*.scala) ${DIST}/sim.jar
+	mkdir -p ${TEST_BUILD}
+	mkdir -p ${DIST}
+	echo "Compiling (${SCALAC})..."
+	${SCALAC} -deprecation -d ${TEST_BUILD} -cp ${TEST_CP} `find $(TEST_SRC) -name "*.scala"` `find ${TEST_SRC} -name "*.java"`
+	jar cf ${DIST}/test.jar -C $(TEST_BUILD) .
+	jar uf ${DIST}/test.jar -C $(TEST_SRC) .
+
 # -- TARGETS --
 default: ${DIST}/sim.jar
 
 release: ${DIST}/sim-release.jar
+test: ${DIST}/test.jar
+	@${SCALA} -J-Xmx2g -J-ea -cp ${TEST_CP}:${CORENLP_MODELS}:${DIST}/test.jar org.scalatest.run org.goobs.sim.WordnetOntologySpec org.goobs.sim.WordnetSimilaritySpec org.goobs.sim.DistributionalSimilaritySpec org.goobs.sim.NormalizedDistanceSpec
 
 clean:
 	rm -rf ${BUILD}
+	rm -rf ${TEST_BUILD}
 	rm -f ${DIST}/sim.jar
+	rm -f ${DIST}/sim-release.jar
+	rm -f ${DIST}/test.jar
 	rm -rf ${TMP}
 	rm -f java.hprof.txt

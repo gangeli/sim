@@ -8,7 +8,7 @@ public class JavaExample {
     // Get the similarity between cat and dog.
     // Make sure that both terms exist in the ontology with ontology.contains()
     // or else the resulting similarity will be meaningless.
-    Ontology.Similarity sim = ontology.sim("cat", "dog");
+    Ontology.Similarity sim = ontology.sim("cat", "dog").get();
     System.out.println("Lesk similarity between cat and dog is: " + sim.lesk());
     
     // Distributional Similarity
