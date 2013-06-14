@@ -30,7 +30,7 @@ case class Ontology(ontology:Map[Phrase, Set[Ontology.RealNode]],
 
   def totalCount:Long = root.subtreeCount
 
-  def depth:Int = 22 // computeDepth(root)
+  val depth:Int = 22 // computeDepth(root)
   def computeDepth(root:Node):Int = {
     if (root.hyponyms.isEmpty) 1
     else root.hyponyms.map{ computeDepth(_) }.max + 1
