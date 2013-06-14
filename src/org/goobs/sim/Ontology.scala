@@ -116,24 +116,29 @@ case class Ontology(ontology:Map[Phrase, Set[Ontology.RealNode]],
    */
   def sim(a:Set[_<:Node], b:Set[_<:Node]):Similarity
     = Similarity(a.asInstanceOf[Set[Node]], b.asInstanceOf[Set[Node]], totalCount)
+ 
+  /** @see sim */
+  def sim(a:Node, b:Node):Similarity = sim(Set[Node](a), Set[Node](b))
 
   /** Returns the similarity between two phrases.
     * @see sim
     */
-  def sim(a:Seq[String], b:Seq[String]):Similarity = {
-    assert(contains(a), "Ontology does not contain phrase: " + a.mkString(" "))
-    assert(contains(b), "Ontology does not contain phrase: " + b.mkString(" "))
-    def filterFirstSense[A <: Node](set:Set[A], p:Seq[String]):Set[A] = {
-      val candidate = set.filter{ (node:Node) =>
-        node match {
-          case (rn:RealNode) =>
-            rn.synset.getWordForms()(0).toLowerCase == p.mkString(" ").toLowerCase
-          case _ => true
+  def sim(a:Seq[String], b:Seq[String]):Option[Similarity] = {
+    if (!contains(a) || !contains(b)) {
+      None
+    } else {
+      def filterFirstSense[A <: Node](set:Set[A], p:Seq[String]):Set[A] = {
+        val candidate = set.filter{ (node:Node) =>
+          node match {
+            case (rn:RealNode) =>
+              rn.synset.getWordForms()(0).toLowerCase == p.mkString(" ").toLowerCase
+            case _ => true
+          }
         }
+        if (candidate.size > 0) candidate else set
       }
-      if (candidate.size > 0) candidate else set
+      Some(sim(filterFirstSense(get(a).toSet, a), filterFirstSense(get(b).toSet, b)))
     }
-    sim(filterFirstSense(get(a).toSet, a), filterFirstSense(get(b).toSet, b))
   }
   
   /** Returns the similarity between two phrases.
@@ -145,21 +150,17 @@ case class Ontology(ontology:Map[Phrase, Set[Ontology.RealNode]],
     if (backoff) {
       // -- Case: Massage Sentences
       for { seqA:Seq[String] <- Util.massage(a, contains(_))
-            seqB:Seq[String] <- Util.massage(b, contains(_)) }
-        yield sim(seqA, seqB)
+            seqB:Seq[String] <- Util.massage(b, contains(_))
+            s:Similarity <- sim(seqA, seqB) } yield s
     } else {
       // -- Case: Exact Match
-      if (contains(a.words) && contains(b.words)) Some(sim(a.words, b.words))
-      else None
+      sim(a.words, b.words)
     }
   }
 
   /** @see sim */
-  def sim(a:String, b:String):Similarity
+  def sim(a:String, b:String):Option[Similarity]
     = sim(a.split("""\s+"""), b.split("""\s+"""))
-  
-  /** @see sim */
-  def sim(a:Node, b:Node):Similarity = sim(Set[Node](a), Set[Node](b))
 
   /**
    * Maps the ontology, and updates totalCount, etc to be consistent with
