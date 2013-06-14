@@ -17,11 +17,13 @@ TMP=tmp
 DOC=scaladoc
 # (classpaths)
 CORENLP=${LIB}/stanford-corenlp-1.3.5.jar
-CP=${CORENLP}:${LIB}/jaws.jar:${LIB}/breeze-math.jar
+CP=${CORENLP}:${LIB}/jaws.jar:${LIB}/breeze-math.jar:${LIB}/json.jar
 
 # -- BUILD --
-${DIST}/sim.jar: $(wildcard src/sim/*.scala) $(wildcard src/edu/stanford/nlp/*.scala)
+${DIST}/sim.jar: $(wildcard src/org/goobs/sim/*.scala) $(wildcard src/org/goobs/sim/viz/*.scala) $(wildcard src/edu/stanford/nlp/*.scala)
 	@mkdir -p ${BUILD}
+	@echo "Compiling (${JAVAC})..."
+	@${JAVAC} -deprecation -d ${BUILD} -cp ${CP} `find ${SRC} -name "*.java"`
 	@echo "Compiling (${SCALAC})..."
 	@${SCALAC} -deprecation -d ${BUILD} -cp ${CP} `find ${SRC} -name "*.scala"` `find ${SRC} -name "*.java"`
 	mkdir -p ${DIST}
@@ -49,6 +51,12 @@ ${DIST}/sim-release.jar: ${DIST}/sim.jar
 	rm -r ${TMP}/jaws/META-INF
 	jar uf ${DIST}/sim-release.jar -C ${TMP}/jaws/ .
 	rm -rf ${TMP}/jaws
+	#((json))
+	rm -rf ${TMP}/json
+	unzip ${LIB}/json.jar -d ${TMP}/json > /dev/null
+	rm -r ${TMP}/json/META-INF
+	jar uf ${DIST}/sim-release.jar -C ${TMP}/json/ .
+	rm -rf ${TMP}/json
 	#((breeze-math))
 	rm -rf ${TMP}/breeze-math
 	unzip ${LIB}/breeze-math.jar -d ${TMP}/breeze-math > /dev/null

@@ -290,7 +290,11 @@ class Similarity(sentA:Sentence, sentB:Sentence, backoff:Boolean, wordnetInstanc
 
       case _ => throw new IllegalArgumentException("No such algorithm: " + algorithm)
     }
-    result
+    if (result.isNaN || result.isInfinite) {
+      0.0
+    } else {
+      result
+    }
   }
 
   /** @see normalizedSimilarity */

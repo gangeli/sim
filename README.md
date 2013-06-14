@@ -47,3 +47,24 @@ which uses the resource. It can be compiled and run with (from the project root)
 
      $ javac -cp dist/sim-release.jar aux/JavaExample.java
      $ java  -cp dist/sim-release.jar:aux -Dwordnet.database.dir=aux/WordNet-3.0/dict -mx4g JavaExample
+
+Visualization
+------
+![Similarity Visualization](https://graphics.stanford.edu/wikis/cs448b-12-fall/A3-SukolsakSakshuwongAngeliGabor?action=AttachFile&do=get&target=screenshot2.png "Similarity Visualization")
+
+A visualization for various similarity metrics is included, in large part
+courtesy of Sukolsak Sakshuwong (github: `sukolsak`).
+To start the server, run `viz-server` from the project root.
+This will load the similarity server, as well as a simply Python server
+on port 8000.
+Navigating to localhost:8000 should start up the interface.
+
+Three words should be chosen as the "basis" words -- the distances between these
+words will be accurate according to the similarity metric chosen.
+Additional words can be added, and will be displayed within the barycentric
+coordinates defined by the basis.
+That is, the distance from the added word to each of the three basis words will be
+accurate, but the distance between the added words may not be.
+If possible, a wordnet hierarchy is shown to in the right pane.
+
+

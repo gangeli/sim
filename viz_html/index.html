@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Word Similarity</title>
+<script src="d3.v2.min.js"></script>
+<script src="force.js"></script>
+<link rel="stylesheet" href="style.css" />
+<script>
+/*-------------
+ * Utilities
+ *-------------*/
+
+var debug = 0;
+if (debug) {
+	debugWords = ["car", "airplane", "lion", "cat", "dog", "book", "fish"];
+	debugBases = [1, 5, 4];
+	debugData = {
+		"tree":{"value":"Concept","children":[{"value":"Verb","children":[{"value":"think","children":[{"value":"plan","children":[{"value":"schedule","children":[{"index":5,"value":"book","children":[],"synset":885597447}],"synset":1006266396}],"synset":224301783}],"synset":499223116}],"synset":0},{"value":"Noun","children":[{"value":"entity","children":[{"value":"physical entity","children":[{"value":"object","children":[{"value":"whole","children":[{"value":"artifact","children":[{"value":"instrumentality","children":[{"value":"device","children":[{"value":"support","children":[{"index":4,"value":"dog [andiron]","children":[],"synset":591704463}],"synset":780857040}],"synset":27134372},{"value":"conveyance","children":[{"value":"vehicle","children":[{"value":"craft","children":[{"value":"aircraft","children":[{"value":"heavier-than-air craft","children":[{"index":1,"value":"airplane","children":[],"synset":674653555}],"synset":1989851698}],"synset":1229679597}],"synset":489444401}],"synset":1615593067}],"synset":1868012080}],"synset":785889241}],"synset":453897055}],"synset":271544990}],"synset":1603313878}],"synset":168500432}],"synset":1349006843}],"synset":0}],"synset":0},
+		"nodes":[
+			{"sim_to_basis":[0.1476184439052533,0.08827265151413599,0.0852092357086089],"lambda":[0.982778340001994,0.010340496032230239,0.0068811639657757285],"word":"car","y":0.4042765015790131,"dist":2.2931592061667527,"x":0.964546974877212},
+			{"sim_to_basis":[100,0.0729535314324798,0.0708484458623858],"lambda":[0.9999981256665467,1.125416344301962E-6,7.489171090794819E-7],"word":"airplane","y":0,"dist":0,"x":0},{"sim_to_basis":[0.05434223516734833,0.05452859344335252,0.06857239462283042],"lambda":[0.021002737776703466,0.022366036186912776,0.9566312260363837],"word":"lion","y":0.9233316554368496,"dist":1.9060297233501902,"x":0.7812103720054718},{"sim_to_basis":[0.1307161527737457,0.06570446553381656,0.12463850182742048],"lambda":[0.5920122268831611,3.054483894606869E-4,0.40768232472737803],"word":"cat","y":1.011449431479267,"dist":1.6911079245970755,"x":0.4735333940025111},{"sim_to_basis":[0.0708484458623858,0.06906611326953763,100],"lambda":[7.489175622703495E-7,5.202888181195686E-7,0.9999987307936197],"word":"dog","y":2.085361683759632,"dist":5.004940285931521E-16,"x":0.6062649983995925},{"sim_to_basis":[0.0729535314324798,100,0.06906611326953763],"lambda":[1.1254166016043904E-6,0.9999983542947762,5.202886222311817E-7],"word":"book","y":4.128641872824801E-16,"dist":6.877385551335626E-16,"x":2.9218304812469666},{"sim_to_basis":[0.05905099855858455,0.06491075939446365,0.07624421326926367],"lambda":[0.019546394962556963,0.09015577927669786,0.8902978257607451],"word":"fish","y":0.9723232580124767,"dist":2.245870846970953,"x":0.42371620629225426}]
+	};
+}
+
+function printDebug() {
+	console.log("debugWords = " + JSON.stringify(words) + ";\n" +
+		"debugBases = " + JSON.stringify(bases) + ";\n"
+	);
+}
+
+var ajaxLoading = 0;
+function $(o) {return document.getElementById(o);}
+function ajax(url, data, callback) {
+	if (debug) {
+		callback(debugData);
+		return;
+	}
+
+	var handler = function() {
+		if (this.readyState == 4) {
+			ajaxLoading--;
+			if (ajaxLoading == 0)
+				$('loading').style.display = "none";
+			
+			if (this.status == 200) {
+				try {
+					var o = JSON.parse(this.responseText);
+				} catch (e) {
+					alert("Can't parse the response: " + this.responseText);
+					return;
+				};
+				callback(o);
+			}
+		}
+	}
+	
+	ajaxLoading++;
+	if (ajaxLoading == 1)
+		$('loading').style.display = "block";
+	
+	var url = "http://localhost.org:4280/" + url + "?data=" + encodeURIComponent(JSON.stringify(data));
+//	url = "proxy.php?url=" + encodeURIComponent(url);
+	var client = new XMLHttpRequest();
+	client.onreadystatechange = handler;
+	client.open("GET", url);
+	client.send();
+}
+
+
+/*-------------
+ * Model
+ *-------------*/
+ 
+var words = [];
+var bases = [];
+
+function addWord(word) {
+	if (words.indexOf(word) == -1) {
+		ajax("dict_lookup",
+			{
+				"partial_word": word,
+			},
+			function(o) {
+				if (!o.word_in_dictionary) {
+					alert(word + " not found!")
+					return;
+				}
+				words.push(word);
+				reloadWordlist();
+				localStorage.setItem("words", JSON.stringify(words));
+				draw(false);
+			}
+		);
+	}
+}
+
+function removeWord(index) {
+	words.splice(index, 1);
+	for (var i = bases.length - 1; i >= 0; --i) {
+		if (bases[i] == index) {
+			bases.splice(i, 1);
+		} else if (bases[i] > index) {
+			bases[i]--;
+		}
+	}
+	reloadWordlist();
+	localStorage.setItem("words", JSON.stringify(words));
+	draw(false);
+}
+
+function isBasis(word) {
+	var i = words.indexOf(word);
+	return i != -1 && bases.indexOf(i) != -1;
+}
+
+function makeBasis(index) {
+	var i = bases.indexOf(index);
+	if (i == -1) {
+		if (bases.length >= 3)
+			bases.splice(0, bases.length - 2);
+		bases.push(index);
+	} else {
+		bases.splice(i, 1);
+	}
+	reloadWordlist();
+	scale = 1;
+	draw(false);
+	localStorage.setItem("bases", JSON.stringify(bases));
+}
+
+function findInTree(tree, word) {
+	if (tree.value != undefined &&
+		tree.value.toLowerCase().indexOf(word.toLowerCase()) == 0) {
+		return tree;
+	}
+	if (tree.children != undefined) {
+		for (child in tree.children) {
+			if (findInTree(tree.children[child], word))
+				return true;
+		}
+	}
+	return false;
+}
+
+function getGloss(index, callback) {
+	if (data.nodes[index].gloss !== undefined) {
+		callback(data.nodes[index].gloss);
+		return;
+	}
+	
+	// Get tree node
+	var treeNode = findInTree(data.tree, words[index]);
+	var synset = -1;
+	if (treeNode && treeNode.synset != undefined) {
+		synset = treeNode.synset;
+	}
+	// Get basis
+	var basisWords = bases.map(function(i) { return words[i]; });
+
+	// Make call
+	ajax("define",
+		{
+			"word": words[index],
+			"synset": synset,
+			"algorithm": $('algorithm').value,
+			"basis" : basisWords,
+		},
+		function(o) {
+			data.nodes[index].gloss = o.gloss; // cache
+			callback(o.gloss);
+		}
+	);
+}
+
+/*-------------
+ * Views & Controllers
+ *-------------*/
+
+var scale = 1, translate = [0, 0];
+
+function add(e) {
+	var word = $('word').value;
+	addWord(word);
+	$('word').value = "";
+	e.preventDefault();
+}
+
+function reloadWordlist() {
+	var s = "";
+	for (var i = 0; i < words.length; ++i) {
+		var isBasis = bases.indexOf(i) != -1;
+		var basisClass = isBasis ? ' word-item-basis' : '';
+		s += "<div id='word" + i + "' class='word-item" + basisClass + "'>";
+		s += words[i];
+		s += "<div id='word-delete" + i + "' class='word-delete'>x</div>";
+		s += "</div>";
+	}
+	$('wordlist').innerHTML = s;
+	function highlight(v) {
+		return function() { v.style.backgroundColor = '#eee'; };
+	}
+	function unhighlight(v) {
+		return function() { v.style.backgroundColor = 'white'; };
+	}
+	for (var i = 0; i < words.length; ++i) {
+		var v = $('word'+i);
+		v.onclick = (function (i) {return function() {
+			makeBasis(i);
+			hideInfo();
+		};})(i);
+		$('word-delete'+i).onclick = (function (i) {return function(e) {
+			removeWord(i);
+			e.stopPropagation();
+		};})(i);
+		v.onmouseover = highlight(v);
+		v.onmouseout = unhighlight(v);
+		v.onmousedown = function(e) { e.preventDefault(); }
+	}
+}
+
+function wordStatus(word, callback) {
+	ajax("dict_lookup",
+		{
+			"partial_word": word,
+		},
+		function(o) {
+			if (o.prefix_in_dictionary) {
+				if (o.word_in_dictionary) {
+					callback("match");
+				} else {
+					callback("partial");
+				}
+			} else {
+				callback("invalid");
+			}
+		}
+	);
+}
+
+function checkWord() {
+	var partial = $('word').value;
+	if (partial == "") {
+		$('word').style.backgroundColor = '#FFFFFF';
+		return;
+	}
+	wordStatus(partial, function(state) {
+		//console.log(state);
+		if ($('word').value == partial && $('word').value != "") {
+			switch(state) {
+				case "invalid":
+					$('word').style.backgroundColor = '#BF2F46';
+					break;
+				case "partial":
+					$('word').style.backgroundColor = '#F6F2B0';
+					break;
+				case "match":
+					$('word').style.backgroundColor = '#B5E3BF';
+				break;
+			}
+		}
+	})
+}
+
+function draw(force) {
+	if (force === undefined) force = true;
+	if (words.length < 3) {
+		if (force)
+			alert("You must enter at least three words.");
+		return;
+	} else if (bases.length < 3) {
+		if (force)
+			alert("You must choose at least three bases.");
+		return;
+	}
+
+	ajax("word_distance",
+		{
+			"algorithm": $('algorithm').value,
+			"words": words,
+			"basis": bases
+		},
+		function(o) {
+			//console.log(o);
+			data = o;
+			processData();
+			if (force) {
+				clear();
+				redraw();
+			} else {
+				redraw(true);
+			}
+		}
+	);
+}
+
+function processData() {
+	// normalize
+	var extentX = d3.extent(data.nodes, function(d) { return d.x; });
+	var extentY = d3.extent(data.nodes, function(d) { return d.y; });
+	var ex = Math.max(extentX[1] - extentX[0], extentY[1] - extentY[0]);
+	for (var i = 0; i < data.nodes.length; ++i) {
+		data.nodes[i].x /= ex;
+		data.nodes[i].y /= ex;
+		data.nodes[i].cx = data.nodes[i].x;
+		data.nodes[i].cy = data.nodes[i].y;
+	}
+
+	// convert barycentric coordinates to Cartesian coordinates 
+	var transform = function(d, k) {
+		if (bases.indexOf(k) != -1) {
+			return;
+		}
+		var e = [0, 0, 0], sum=0;
+		for (var i = 0; i < 3; i++) {
+			e[i] = d.lambda[i];
+			sum += e[i];
+		}
+		for (var i = 0; i < 3; i++)
+			e[i] /= sum;
+		d.x = data.nodes[bases[0]].x * e[0]
+			+ data.nodes[bases[1]].x * e[1]
+			+ data.nodes[bases[2]].x * e[2];
+		d.y = data.nodes[bases[0]].y * e[0]
+			+ data.nodes[bases[1]].y * e[1]
+			+ data.nodes[bases[2]].y * e[2];
+	};
+	for (var i = 0; i < data.nodes.length; ++i) {
+		transform(data.nodes[i], i);
+	}
+	
+	// Use force to remove overlap
+	var a = [];
+	data.nodes.forEach(function(o) {
+		// circles
+		var b = {
+			x: o.x, y: o.y,
+			xx: o.x, yy: o.y,
+			fixed: true
+		};
+		a.push(b);
+		
+		// labels
+		b = {
+			x: o.x, y: o.y + 0.0001,
+			xx: o.x, yy: o.y + 0.0001,
+			fixed: false
+		};
+		a.push(b);
+	});
+
+	var force = myforce()
+		.nodes(a)
+		.charge(-0.001)
+		.onTick(function(alpha) {
+			// Push nodes toward their original location.
+			var k = 0.5 * alpha;
+			a.forEach(function(o, i) {
+				o.y += (o.yy - o.y) * k;
+				o.x += (o.xx - o.x) * k;
+			});
+		})
+	;
+	force.start();
+	for (var i = 0; i < data.nodes.length; i++) {
+		data.nodes[i].cx = a[i*2].x;
+		data.nodes[i].cy = a[i*2].y;
+		data.nodes[i].x = a[i*2 + 1].x;
+		data.nodes[i].y = a[i*2 + 1].y;
+	}
+}
+
+
+var svg, vis;
+var data;
+var margin = {top: 40, right: 40, bottom: 40, left: 40},
+		width = 460 - margin.left - margin.right,
+		height = 460 - margin.top - margin.bottom;
+
+function init() {
+	svg = d3.select("#graph svg")
+			.attr("width", width + margin.left + margin.right)
+			.attr("height", height + margin.top + margin.bottom)
+		.append("g")
+			.attr("transform", "translate(" + (margin.left + width/2) + "," + (margin.top + height/2) + ")");
+	
+	d3.select("#graph svg")
+		.append("g")
+		.attr("id", "scale");
+	
+	d3.select("#graph svg")
+		.append("g")
+		.attr("id", "info");
+			
+	vis = d3.select("#tree").append("svg")
+			.attr("width", 400)
+			.attr("height", 460)
+		.append("g")
+			.attr("transform", "translate(30, 60)")
+		;
+}
+
+function clear() {
+	svg.selectAll("g.node").remove();
+}
+
+function redraw(slow) {
+	//svg.selectAll("g").remove();
+	//svg.selectAll("circle").remove();
+	//svg.selectAll("path").remove();
+	redrawGraph(slow);
+	redrawTree(slow);
+}
+
+function redrawGraph(slow) {
+	if (slow === undefined) slow = false;
+	var duration = slow ? 1000 : 100;
+
+	var nodeClass = function(d) { return isBasis(d.word) ? "node node-basis" : "node"; };
+	
+	var coors = function(node) { return x(node.x) + " " + y(node.y); };
+	var coors2 = function(node) { return x(node.cx) + " " + y(node.cy); };
+	
+	
+	// compute domain and range
+	var x = d3.scale.linear().range([-width/2, width/2]);
+	var y = d3.scale.linear().range([height/2, -height/2]);
+	var extentX = d3.extent(data.nodes, function(d) { return d.x; });
+	var extentY = d3.extent(data.nodes, function(d) { return d.y; });
+	var ex = Math.max(extentX[1] - extentX[0], extentY[1] - extentY[0]) / 2;
+	ex /= scale;
+	if (isNaN(ex))
+		return;
+	var midX = (extentX[1] + extentX[0]) / 2;
+	var midY = (extentY[1] + extentY[0]) / 2;
+	x.domain([midX - ex, midX + ex]);
+	y.domain([midY - ex, midY + ex]);
+	
+	
+	
+	var transform = function(d) {
+		return "translate(" + x(d.x) + "," + y(d.y) + ")";
+	};
+	
+	var nodeClick = function(d, i) {
+		if (mouseMoved)
+			return;
+		//makeBasis(i);
+		svg.selectAll(".distanceLine").remove();
+		
+		showInfo(i);
+	}
+	
+	var nodeMouseOver = function(d, i) {
+		// add 3 distance lines
+		var coordinates = function(node) { return x(node.cx) + " " + y(node.cy); };
+		//var g = svg.insert("g", ":first-child")
+		var g = svg.append("g")
+			.attr("class", "distanceLine");
+		g.append("path")
+			.attr("d",
+				"M" + coordinates(d) + "L" + coordinates(data.nodes[bases[0]])
+				+ "M" + coordinates(d) + "L" + coordinates(data.nodes[bases[1]])
+				+ "M" + coordinates(d) + "L" + coordinates(data.nodes[bases[2]])
+			)
+			;
+		var mid = function (n1, n2) {
+			var midX = (n1.cx + n2.cx) / 2;
+			var midY = (n1.cy + n2.cy) / 2;
+			var angle = -Math.atan2(n1.cy - n2.cy, n1.cx - n2.cx) * 180 / Math.PI;
+			if (angle < -90)
+				angle += 180;
+			else if (angle > 90)
+				angle -= 180;
+			return "translate(" + x(midX) + "," + y(midY) + ")rotate(" + angle + ")";
+		}
+
+		for (var j = 0; j < 3; ++j) {
+			if (i == bases[j]) continue;
+			g.append("text")
+				.attr("transform", mid(d, data.nodes[bases[j]]))
+				.attr("dy", "18px")
+				.attr("text-anchor", "middle")
+				.text(parseFloat(d.sim_to_basis[j]).toFixed(4))
+				;
+		}
+	}
+	
+	
+	
+	// add scale
+	{
+		var a = [0.1, 0.2, 0.5, 1, 2, 5, 10], b = 1;
+		var s = x(1) - x(0);
+		var t = Math.log(80 / s) / Math.log(10);
+		t = Math.pow(10, Math.ceil(t));
+		for (var i = 0; i < a.length; ++i) {
+			if (a[i] * t * s >= 80)  {
+				b = a[i] * t;
+				break;
+			}
+		}
+		var sh = 7, sw=b*s;
+		var pathD = "M 0 0 L 0 " + sh +
+					"M" + sw + " 0 L" + sw + " " + sh +
+					"M 0 " + sh + "L" + sw + " " + sh;
+		var g = d3.select("#scale g");
+		if (g.empty()) {
+			g = d3.select("#scale").append("g");
+			g.attr("transform", "translate(10, 444)");
+			g.append("path").attr("d", pathD);
+			g.append("text").attr("x", 0).attr("y", -5).text("0");
+			g.append("text").attr("id", "scale-number").attr("x", sw).attr("y", -5).text(b);
+		} else {
+			sx = 0; sy = 0;
+			g.select("path").transition().duration(100).attr("d", pathD);
+			g.select("#scale-number").transition().duration(100).attr("x", sw).text(b);
+		}
+	}
+	
+	// update selector
+
+	var node = svg.selectAll("g.node")
+		.data(data.nodes, function (d) { return d.word; });
+		
+ 	var g = node
+ 		.attr("class", nodeClass)
+ 		.on("mouseover", nodeMouseOver)
+		;
+	
+	g.select("path.line")
+		.transition()
+		.ease(slow ? "cubic-in-out" : "linear")
+		.duration(duration)
+		.attr("d", function(d) { return "M" + coors( d ) + "L" + coors2( d); });
+	
+	
+	g.select("text")
+		.attr("class", function(d) { return isBasis(d.word) ? "basis" : ""; })
+		.transition()
+		.ease(slow ? "cubic-in-out" : "linear")
+		.duration(duration)
+ 		.attr("transform", transform)
+		;
+		
+	g.select("circle")
+		.attr("class", function(d) { return isBasis(d.word) ? "basis" : ""; })
+		.transition()
+		.ease(slow ? "cubic-in-out" : "linear")
+		.duration(duration)
+		.attr("transform", function (d) { return "translate(" + x(d.cx) + "," + y(d.cy) + ")"; })
+		;
+	
+	
+	// enter selector
+	
+	
+	var g = node.enter().append("g")
+		.attr("class", nodeClass)
+		.on("click", nodeClick)
+		.on("mousedown", function() { mouseMoved = false; })
+		.on("mouseover", nodeMouseOver)
+		.on("mouseout", function() {
+			svg.selectAll(".distanceLine").remove();
+		})
+		;
+	
+	g.append("path")
+		.attr("class", "line")
+		.attr("d", function(d) { return "M" + coors( d ) + "L" + coors2( d); })
+		.attr("stroke", "rgb(200,200,200)")
+		;
+	
+	g.append("circle")
+		.attr("class", function(d) { return isBasis(d.word) ? "basis" : ""; })
+		.attr("transform", function (d) { return "translate(" + x(d.cx) + "," + y(d.cy) + ")"; })
+		.attr("r", 4.5)
+		.attr("cursor", "pointer")
+		;
+		  
+	g.append("text")
+		//.attr("dy", "18px")
+		.attr("class", function(d) { return isBasis(d.word) ? "basis" : ""; })
+		.attr("transform", transform)
+		.attr("dy", "4px")
+		.attr("text-anchor", "middle")
+		.attr("cursor", "pointer")
+		.text(function(d) { return d.word; })
+		;
+	
+	// exit selector
+	
+	node.exit().remove();
+}
+
+
+function redrawTree(slow) {
+	if (slow === undefined) slow = false;
+	
+	var tree = d3.layout.tree()
+		.size([340, 340])
+		.separation(function(a, b) { return 1; })
+		;
+	
+	var diagonal = d3.svg.diagonal();
+	
+	var nodes = tree.nodes(data.tree);
+	
+	vis.selectAll("path.link").remove();
+	vis.selectAll("g.node").remove();
+	
+	var link = vis.selectAll("path.link")
+		.data(tree.links(nodes))
+	  .enter().append("path")
+		.attr("class", "link")
+		.attr("d", diagonal)
+		;
+	
+	var node = vis.selectAll("g.node")
+		//.data(nodes, function (d) { return d.value; });
+		.data(nodes);
+	  
+	var g = node.enter().append("g")
+		.attr("class", function(d) { return (d.index !== undefined) ? "node node-basis" : "node"; })
+		.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; })
+		;
+	
+	g.append("circle")
+		.attr("r", 4.5)
+		;
+	
+	g.append("text")
+		.attr("class", function(d) { return (d.index !== undefined) ? "basis" : ""; })
+		.attr("dy", "18px")
+		.attr("text-anchor", "middle")
+		.text(function(d) { return d.value; })
+		;
+}
+
+function animateTranslation() {
+	svg.transition()
+		.ease("linear")
+		.duration(100)
+		.attr("transform", "translate(" + (margin.left + width/2 + translate[0]) + ","
+			+ (margin.top + height/2 + translate[1]) + ")");
+}
+
+function zoomin() {
+	scale *= 1.2;
+	translate[0] *= 1.2;
+	translate[1] *= 1.2;
+	animateTranslation();
+	redrawGraph();
+}
+
+function zoomout() {
+	scale *= 1/1.2;
+	translate[0] *= 1/1.2;
+	translate[1] *= 1/1.2;
+	animateTranslation();
+	redrawGraph();
+}
+
+var state = 0;
+var mouseMoved;
+var prevX, prevY;
+
+function graphDown(e) {
+	state = 1;
+	prevX = e.clientX;
+	prevY = e.clientY;
+	hideInfo();
+	e.preventDefault();
+}
+
+function graphMove(e) {
+	mouseMoved = true;
+	if (state == 1) {
+		var x = e.clientX, y = e.clientY;
+		
+		translate[0] += x - prevX;
+		translate[1] += y - prevY;
+		
+		prevX = x; prevY = y;
+		svg.attr("transform", "translate(" + (margin.left + width/2 + translate[0]) + "," + (margin.top + height/2 + translate[1]) + ")");
+		
+		e.stopPropagation();
+	}
+}
+
+function graphUp() {
+	state = 0;
+}
+
+function showInfo(index) {
+	getGloss(index, function(gloss) {
+		d3.select("#info g").remove();
+		var g = d3.select("#info").append("g");
+		
+		g.append("foreignObject")
+			.attr("x", 10 + 36)
+			.attr("y", 10)
+			.attr("width", 440 - 36)
+			.attr("height", 100)
+			.append("xhtml:div")
+			.html("<b>" + words[index] + "</b>: " + gloss)
+			;
+		g.attr("opacity", 0)
+			.transition()
+			.duration(100)
+			.attr("opacity", 1)
+		;
+	});
+}
+
+function hideInfo() {
+	d3.select("#info g").remove();
+}
+
+function loadData() {
+	if (debug) {
+		words = debugWords;
+		bases = debugBases;
+		draw(false);
+		return;
+	}
+
+	data = {
+		"tree": {},
+		"nodes": []
+	};
+	
+	try {
+		words = localStorage.getItem("words");
+		if (words == null) words = []; else words = JSON.parse(words);
+		bases = localStorage.getItem("bases");
+		if (bases == null) bases = []; else bases = JSON.parse(bases);
+		
+		draw(false);
+	} catch (e) {
+		words = [];
+		bases = [];
+	}
+	
+	
+}
+
+window.onload = function() {
+	init();
+	loadData();
+	$('form').onsubmit = add;
+	$('word').onkeyup = checkWord;
+	$('algorithm').onchange = function() { draw(false); }
+	//$('drawButton').onclick = draw;
+	$('graph-zoomin').onclick = zoomin;
+	$('graph-zoomout').onclick = zoomout;
+	$('graph-zoomin').onmousedown = function(e) { e.preventDefault(); }
+	$('graph-zoomout').onmousedown = function(e) { e.preventDefault(); }
+	$('graph').onmousedown = graphDown;
+	$('graph').onmousemove = graphMove;
+	$('graph').onmouseup = graphUp;
+	document.onmousemove = function() { state = 0; }
+	reloadWordlist();
+}
+</script>
+</head>
+<body>
+<div id="loading">Loading...</div>
+<div style="display:inline-block;vertical-align:top;">
+	<form id="form">
+	Enter a word:<br>
+	<input type="text" id="word" /> <input type="submit" value="Add" />
+	</form>
+	<div id="wordlist"></div>
+	<select id="algorithm">
+		<option value="jc">Jiang-Conrath</option>
+		<option value="path">Path</option>
+		<option value="resnik">Resnik</option>
+		<option value="lin">Lin</option>
+		<option value="wuPalmer">Wu Palmer</option>
+		<option value="lesk" selected>Lesk</option>
+		<option value="cos">Cosine</option>
+		<option value="angle">Angle</option>
+	</select>
+	<!--<button id="drawButton">Draw</button>-->
+</div>
+<div id="graph" style="display:inline-block;vertical-align:top;">
+	<div id="graph-zoomin">+</div>
+	<div id="graph-zoomout">-</div>
+<svg></svg></div>
+
+<div id="tree" style="display:inline-block;vertical-align:top;"></div>
+
+</body>
+</html>

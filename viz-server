@@ -1,0 +1,5 @@
+#!/bin/bash
+#
+
+java -mx2G -cp dist/sim-release.jar org.goobs.sim.viz.Server aux/ontology.ser.gz aux/distsim.ser.gz 4280 &
+cd viz_html && python -m SimpleHTTPServer 8000
