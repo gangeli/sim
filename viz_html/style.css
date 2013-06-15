@@ -3,7 +3,12 @@ body {
 	font-size: 12px;
 }
 
-#graph, #tree {
+.label {
+	text-align: center;
+	margin-bottom: 10px;
+}
+
+.wrapper {
 	border: 1px #ccc solid;
 	position: relative;
 }
@@ -121,6 +126,10 @@ text.basis {
 	text-anchor: middle;
 	fill: #666;
 	font-size: 11px;
+}
+
+.distanceLine {
+	pointer-events: none;
 }
 
 .distanceLine path {

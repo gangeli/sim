@@ -13,20 +13,60 @@
 
 var debug = 0;
 if (debug) {
-	debugWords = ["car", "airplane", "lion", "cat", "dog", "book", "fish"];
-	debugBases = [1, 5, 4];
-	debugData = {
-		"tree":{"value":"Concept","children":[{"value":"Verb","children":[{"value":"think","children":[{"value":"plan","children":[{"value":"schedule","children":[{"index":5,"value":"book","children":[],"synset":885597447}],"synset":1006266396}],"synset":224301783}],"synset":499223116}],"synset":0},{"value":"Noun","children":[{"value":"entity","children":[{"value":"physical entity","children":[{"value":"object","children":[{"value":"whole","children":[{"value":"artifact","children":[{"value":"instrumentality","children":[{"value":"device","children":[{"value":"support","children":[{"index":4,"value":"dog [andiron]","children":[],"synset":591704463}],"synset":780857040}],"synset":27134372},{"value":"conveyance","children":[{"value":"vehicle","children":[{"value":"craft","children":[{"value":"aircraft","children":[{"value":"heavier-than-air craft","children":[{"index":1,"value":"airplane","children":[],"synset":674653555}],"synset":1989851698}],"synset":1229679597}],"synset":489444401}],"synset":1615593067}],"synset":1868012080}],"synset":785889241}],"synset":453897055}],"synset":271544990}],"synset":1603313878}],"synset":168500432}],"synset":1349006843}],"synset":0}],"synset":0},
+	var debugWords = ["car", "airplane", "lion", "cat", "dog", "book", "fish"];
+	var debugBases = [1, 5, 4];
+	var debugData = {
+		"tree":
+			{"value":"Concept","children":[
+				{"value":"Verb","children":[
+					{"value":"think","children":[
+						{"value":"plan","children":[
+							{"value":"schedule","children":[
+								{"index":5,"value":"book","children":[],"synset":885597447}
+							],"synset":1006266396}
+						],"synset":224301783}
+					],"synset":499223116}],"synset":0},
+				{"value":"Noun","children":[
+					{"value":"entity","children":[
+						{"value":"physical entity","children":[
+							{"value":"object","children":[
+								{"value":"whole","children":[
+									{"value":"artifact","children":[
+										{"value":"instrumentality","children":[
+											{"value":"device","children":[
+												{"value":"support","children":[
+													{"index":4,"value":"dog [andiron]","children":[],"synset":591704463}
+												],"synset":780857040}
+											],"synset":27134372},
+											{"value":"conveyance","children":[
+												{"value":"vehicle","children":[
+													{"value":"craft","children":[
+														{"value":"aircraft","children":[
+															{"value":"heavier-than-air craft","children":[
+																{"index":1,"value":"airplane","children":[],"synset":674653555}
+															],"synset":1989851698}
+														],"synset":1229679597}
+													],"synset":489444401}
+												],"synset":1615593067}
+											],"synset":1868012080}
+										],"synset":785889241}
+									],"synset":453897055}
+								],"synset":271544990}
+							],"synset":1603313878}
+						],"synset":168500432}
+					],"synset":1349006843}
+				],"synset":0}
+			],"synset":0},
 		"nodes":[
 			{"sim_to_basis":[0.1476184439052533,0.08827265151413599,0.0852092357086089],"lambda":[0.982778340001994,0.010340496032230239,0.0068811639657757285],"word":"car","y":0.4042765015790131,"dist":2.2931592061667527,"x":0.964546974877212},
-			{"sim_to_basis":[100,0.0729535314324798,0.0708484458623858],"lambda":[0.9999981256665467,1.125416344301962E-6,7.489171090794819E-7],"word":"airplane","y":0,"dist":0,"x":0},{"sim_to_basis":[0.05434223516734833,0.05452859344335252,0.06857239462283042],"lambda":[0.021002737776703466,0.022366036186912776,0.9566312260363837],"word":"lion","y":0.9233316554368496,"dist":1.9060297233501902,"x":0.7812103720054718},{"sim_to_basis":[0.1307161527737457,0.06570446553381656,0.12463850182742048],"lambda":[0.5920122268831611,3.054483894606869E-4,0.40768232472737803],"word":"cat","y":1.011449431479267,"dist":1.6911079245970755,"x":0.4735333940025111},{"sim_to_basis":[0.0708484458623858,0.06906611326953763,100],"lambda":[7.489175622703495E-7,5.202888181195686E-7,0.9999987307936197],"word":"dog","y":2.085361683759632,"dist":5.004940285931521E-16,"x":0.6062649983995925},{"sim_to_basis":[0.0729535314324798,100,0.06906611326953763],"lambda":[1.1254166016043904E-6,0.9999983542947762,5.202886222311817E-7],"word":"book","y":4.128641872824801E-16,"dist":6.877385551335626E-16,"x":2.9218304812469666},{"sim_to_basis":[0.05905099855858455,0.06491075939446365,0.07624421326926367],"lambda":[0.019546394962556963,0.09015577927669786,0.8902978257607451],"word":"fish","y":0.9723232580124767,"dist":2.245870846970953,"x":0.42371620629225426}]
+			{"sim_to_basis":[100,0.0729535314324798,0.0708484458623858],"lambda":[0.9999981256665467,1.125416344301962E-6,7.489171090794819E-7],"word":"airplane","y":0,"dist":0,"x":0},
+			{"sim_to_basis":[0.05434223516734833,0.05452859344335252,0.06857239462283042],"lambda":[0.021002737776703466,0.022366036186912776,0.9566312260363837],"word":"lion","y":0.9233316554368496,"dist":1.9060297233501902,"x":0.7812103720054718},
+			{"sim_to_basis":[0.1307161527737457,0.06570446553381656,0.12463850182742048],"lambda":[0.5920122268831611,3.054483894606869E-4,0.40768232472737803],"word":"cat","y":1.011449431479267,"dist":1.6911079245970755,"x":0.4735333940025111},
+			{"sim_to_basis":[0.0708484458623858,0.06906611326953763,100],"lambda":[7.489175622703495E-7,5.202888181195686E-7,0.9999987307936197],"word":"dog","y":2.085361683759632,"dist":5.004940285931521E-16,"x":0.6062649983995925},
+			{"sim_to_basis":[0.0729535314324798,100,0.06906611326953763],"lambda":[1.1254166016043904E-6,0.9999983542947762,5.202886222311817E-7],"word":"book","y":4.128641872824801E-16,"dist":6.877385551335626E-16,"x":2.9218304812469666},
+			{"sim_to_basis":[0.05905099855858455,0.06491075939446365,0.07624421326926367],"lambda":[0.019546394962556963,0.09015577927669786,0.8902978257607451],"word":"fish","y":0.9723232580124767,"dist":2.245870846970953,"x":0.42371620629225426}
+		]
 	};
-}
-
-function printDebug() {
-	console.log("debugWords = " + JSON.stringify(words) + ";\n" +
-		"debugBases = " + JSON.stringify(bases) + ";\n"
-	);
 }
 
 var ajaxLoading = 0;
@@ -60,7 +100,6 @@ function ajax(url, data, callback) {
 		$('loading').style.display = "block";
 	
 	var url = "http://localhost.org:4280/" + url + "?data=" + encodeURIComponent(JSON.stringify(data));
-//	url = "proxy.php?url=" + encodeURIComponent(url);
 	var client = new XMLHttpRequest();
 	client.onreadystatechange = handler;
 	client.open("GET", url);
@@ -135,6 +174,7 @@ function findInTree(tree, word) {
 		return tree;
 	}
 	if (tree.children != undefined) {
+		var child;
 		for (child in tree.children) {
 			if (findInTree(tree.children[child], word))
 				return true;
@@ -245,7 +285,6 @@ function checkWord() {
 		return;
 	}
 	wordStatus(partial, function(state) {
-		//console.log(state);
 		if ($('word').value == partial && $('word').value != "") {
 			switch(state) {
 				case "invalid":
@@ -256,7 +295,7 @@ function checkWord() {
 					break;
 				case "match":
 					$('word').style.backgroundColor = '#B5E3BF';
-				break;
+					break;
 			}
 		}
 	})
@@ -281,7 +320,6 @@ function draw(force) {
 			"basis": bases
 		},
 		function(o) {
-			//console.log(o);
 			data = o;
 			processData();
 			if (force) {
@@ -308,9 +346,8 @@ function processData() {
 
 	// convert barycentric coordinates to Cartesian coordinates 
 	var transform = function(d, k) {
-		if (bases.indexOf(k) != -1) {
+		if (bases.indexOf(k) != -1)
 			return;
-		}
 		var e = [0, 0, 0], sum=0;
 		for (var i = 0; i < 3; i++) {
 			e[i] = d.lambda[i];
@@ -330,10 +367,10 @@ function processData() {
 	}
 	
 	// Use force to remove overlap
-	var a = [];
+	var a = [], b;
 	data.nodes.forEach(function(o) {
 		// circles
-		var b = {
+		b = {
 			x: o.x, y: o.y,
 			xx: o.x, yy: o.y,
 			fixed: true
@@ -374,30 +411,29 @@ function processData() {
 var svg, vis;
 var data;
 var margin = {top: 40, right: 40, bottom: 40, left: 40},
-		width = 460 - margin.left - margin.right,
-		height = 460 - margin.top - margin.bottom;
+	width = 460 - margin.left - margin.right,
+	height = 460 - margin.top - margin.bottom;
 
 function init() {
-	svg = d3.select("#graph svg")
+	svg = d3.select("#graph")
 			.attr("width", width + margin.left + margin.right)
 			.attr("height", height + margin.top + margin.bottom)
 		.append("g")
 			.attr("transform", "translate(" + (margin.left + width/2) + "," + (margin.top + height/2) + ")");
 	
-	d3.select("#graph svg")
+	d3.select("#graph")
 		.append("g")
 		.attr("id", "scale");
 	
-	d3.select("#graph svg")
+	d3.select("#graph")
 		.append("g")
 		.attr("id", "info");
-			
-	vis = d3.select("#tree").append("svg")
+
+	vis = d3.select("#tree")
 			.attr("width", 400)
 			.attr("height", 460)
 		.append("g")
-			.attr("transform", "translate(30, 60)")
-		;
+			.attr("transform", "translate(30, 60)");
 }
 
 function clear() {
@@ -405,9 +441,6 @@ function clear() {
 }
 
 function redraw(slow) {
-	//svg.selectAll("g").remove();
-	//svg.selectAll("circle").remove();
-	//svg.selectAll("path").remove();
 	redrawGraph(slow);
 	redrawTree(slow);
 }
@@ -445,7 +478,6 @@ function redrawGraph(slow) {
 	var nodeClick = function(d, i) {
 		if (mouseMoved)
 			return;
-		//makeBasis(i);
 		svg.selectAll(".distanceLine").remove();
 		
 		showInfo(i);
@@ -454,7 +486,6 @@ function redrawGraph(slow) {
 	var nodeMouseOver = function(d, i) {
 		// add 3 distance lines
 		var coordinates = function(node) { return x(node.cx) + " " + y(node.cy); };
-		//var g = svg.insert("g", ":first-child")
 		var g = svg.append("g")
 			.attr("class", "distanceLine");
 		g.append("path")
@@ -512,7 +543,6 @@ function redrawGraph(slow) {
 			g.append("text").attr("x", 0).attr("y", -5).text("0");
 			g.append("text").attr("id", "scale-number").attr("x", sw).attr("y", -5).text(b);
 		} else {
-			sx = 0; sy = 0;
 			g.select("path").transition().duration(100).attr("d", pathD);
 			g.select("#scale-number").transition().duration(100).attr("x", sw).text(b);
 		}
@@ -553,8 +583,7 @@ function redrawGraph(slow) {
 	
 	
 	// enter selector
-	
-	
+
 	var g = node.enter().append("g")
 		.attr("class", nodeClass)
 		.on("click", nodeClick)
@@ -579,7 +608,6 @@ function redrawGraph(slow) {
 		;
 		  
 	g.append("text")
-		//.attr("dy", "18px")
 		.attr("class", function(d) { return isBasis(d.word) ? "basis" : ""; })
 		.attr("transform", transform)
 		.attr("dy", "4px")
@@ -741,8 +769,6 @@ function loadData() {
 		words = [];
 		bases = [];
 	}
-	
-	
 }
 
 window.onload = function() {
@@ -768,28 +794,50 @@ window.onload = function() {
 <div id="loading">Loading...</div>
 <div style="display:inline-block;vertical-align:top;">
 	<form id="form">
-	Enter a word:<br>
-	<input type="text" id="word" /> <input type="submit" value="Add" />
-	</form>
-	<div id="wordlist"></div>
-	<select id="algorithm">
-		<option value="jc">Jiang-Conrath</option>
-		<option value="path">Path</option>
-		<option value="resnik">Resnik</option>
-		<option value="lin">Lin</option>
-		<option value="wuPalmer">Wu Palmer</option>
-		<option value="lesk" selected>Lesk</option>
-		<option value="cos">Cosine</option>
-		<option value="angle">Angle</option>
-	</select>
+		Enter a word:<br>
+		<input type="text" id="word" /> <input type="submit" value="Add" />
+	</form><br>
+	<div id="wordlist"></div><br>
+	
+	<div>
+		Algorithm:
+		<select id="algorithm">
+			<option value="jc">Jiang-Conrath</option>
+			<option value="path">Path</option>
+			<option value="resnik">Resnik</option>
+			<option value="lin">Lin</option>
+			<option value="wuPalmer">Wu Palmer</option>
+			<option value="lesk" selected>Lesk</option>
+			<option value="cos">Cosine</option>
+			<option value="angle">Angle</option>
+		</select>
+	</div>
 	<!--<button id="drawButton">Draw</button>-->
 </div>
-<div id="graph" style="display:inline-block;vertical-align:top;">
-	<div id="graph-zoomin">+</div>
-	<div id="graph-zoomout">-</div>
-<svg></svg></div>
 
-<div id="tree" style="display:inline-block;vertical-align:top;"></div>
+<div style="display: inline-block">
+	<div class="label">Relative similarity between the three basis words</div>
+	<div class="wrapper">
+		<div id="graph-zoomin">+</div>
+		<div id="graph-zoomout">-</div>
+		<svg id="graph"></svg>
+	</div>
+</div>
+
+<div style="display: inline-block">
+	<div class="label">Minimum spanning tree of the ontology for the three basis words</div>
+	<div class="wrapper">
+		<svg id="tree"></svg>
+	</div>
+</div>
+
+<br><br>
+<h3>How to use</h3>
+<ul style="list-style-type:square">
+	<li>Enter at least four different words to the list, and choose three basis words. (Basis words are in <b>bold</b>.)</li>
+	<li>Hover over a node to see the similarity values with respect to each of the three basis words.</li>
+	<li>Click on a node to see the definition of the sense of the word which is used to place it in the diagram.</li>
+</ul>
 
 </body>
 </html>
