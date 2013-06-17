@@ -12,7 +12,7 @@ SCALADOC=${SCALA_HOME}/bin/scaladoc
 # (locations)
 SRC=src
 TEST_SRC=test/src
-LIB=etc
+LIB=lib
 BUILD=bin
 TEST_BUILD=test/bin
 DIST=dist
