@@ -5,13 +5,15 @@ import scala.collection.JavaConversions._
 //(scalatest)
 import org.scalatest._
 import org.scalatest.matchers.ShouldMatchers
+//(breeze)
+import breeze.linalg._
 //(program)
 import org.goobs.sim._
 import org.goobs.sim.Ontology._
 
 object Globals {
-  implicit val ontology = Ontology.load("aux/ontology.ser.gz")
-  implicit val distsim = DistSim.load("aux/distsim.ser.gz")
+  implicit val ontology = Ontology.load("etc/ontology.ser.gz")
+  implicit val distsim = DistSim.load("etc/distsim.ser.gz")
 }
 
 class WordnetOntologySpec extends FunSpec with ShouldMatchers {
@@ -82,6 +84,31 @@ class WordnetSimilaritySpec extends FunSpec with ShouldMatchers {
     }
   }
   
+  def allLessThanJaccard(simA:Ontology.Similarity, simB:Ontology.Similarity):Unit = {
+    it("[" + simA + "].path < [" + simB + "].path") { 
+      simA.aggregateJaccard( _.path ) should be < simB.aggregateJaccard( _.path )
+    }
+    it("[" + simA + "].resnik < [" + simB + "].resnik") {
+      simA.aggregateJaccard( _.resnik ) should be < simB.aggregateJaccard( _.resnik )
+    }
+    it("[" + simA + "].lin < [" + simB + "].lin") {
+      simA.aggregateJaccard( _.lin ) should be < simB.aggregateJaccard( _.lin )
+    }
+    it("[" + simA + "].jc < [" + simB + "].jc") {
+      simA.aggregateJaccard( _.jc ) should be < simB.aggregateJaccard( _.jc )
+    }
+    it("[" + simA + "].lesk < [" + simB + "].lesk") {
+      if (simA.lesk != 0 || simB.lesk != 0) {
+        simA.aggregateJaccard( _.lesk ) should be < simB.aggregateJaccard( _.lesk )
+      }
+    }
+    it("[" + simA + "].approximateLesk < [" + simB + "].approximateLesk") {
+      if (simA.approximateLesk != 0 || simB.approximateLesk != 0) {
+        simA.aggregateJaccard( _.approximateLesk ) should be < simB.aggregateJaccard( _.approximateLesk )
+      }
+    }
+  }
+  
   def allEqualTo(simA:Ontology.Similarity, simB:Ontology.Similarity):Unit = {
     it("[" + simA + "].path = [" + simB + "].path") { 
       simA.path should be (simB.path)
@@ -116,6 +143,18 @@ class WordnetSimilaritySpec extends FunSpec with ShouldMatchers {
     allLessThan(dog2god, dog2cat)
     allLessThan(dog2water, dog2cat)
     allLessThan(dog2washington, dog2cat)
+  }
+  
+  describe("The following inequalities should hold with jaccard aggregation") {
+    // (terms to check)
+    val dog2cat = ontology.sim("leopard", "cat").get
+    val dog2god = ontology.sim("leopard", "god").get
+    val dog2water = ontology.sim("leopard", "water").get
+    val dog2washington = ontology.sim("leopard", "washington").get
+    // (perform checks)
+//    allLessThanJaccard(dog2god, dog2cat)
+    allLessThanJaccard(dog2water, dog2cat)
+    allLessThanJaccard(dog2washington, dog2cat)
   }
   
   describe("The following equalities should hold") {
@@ -156,6 +195,44 @@ class WordnetSimilaritySpec extends FunSpec with ShouldMatchers {
       ontology.sim("frump", "liger").get.approximateLesk should be (
         ontology.sim("liger", "frump").get.approximateLesk)
     }
+    
+    val sim2 = ontology.sim("cat", "cat").get
+    it("should have explicit max [lin] similarity of 1.0") {
+      sim2.aggregateMax(_.lin) should be (1.0)
+    }
+    it("should have explicit max [jc] similarity of +∞") {
+      sim2.aggregateMax(_.jc) should be (Double.PositiveInfinity)
+    }
+    it("should have explicit aggregateJaccard [lin] similarity of 1.0") {
+      sim2.aggregateJaccard(_.lin) should be (1.0)
+    }
+    it("should have explicit aggregateJaccard [jc] similarity of 1.0") {
+      sim2.aggregateJaccard(_.jc) should be (1.0)
+    }
+    it("should have explicit sigmoided aggregateJaccard [lin] similarity of < 1.0") {
+      sim2.aggregateJaccard(_.lin, true) should be < 1.0
+    }
+  }
+  
+  describe("The synset n02121620") {
+    it("should exist") {
+      ontology.id2node.get("n02121620") should be ('defined)
+    }
+    it("should correspond to 'cat'") {
+      ontology.id2node.get("n02121620").get.toString should be ("cat")
+    }
+  }
+  
+  describe("Synset similarities") {
+    it("should match phrase similarities") {
+      val leopard2catPhrase = ontology.sim("leopard", "cat").get
+      val leopard2catSynset = ontology.synsetSim("n02128385", "n02121620")
+      leopard2catPhrase.path should be (leopard2catSynset.path plusOrMinus 1e-5)
+      leopard2catPhrase.resnik should be (leopard2catSynset.resnik plusOrMinus 1e-5)
+      leopard2catPhrase.lin should be (leopard2catSynset.lin plusOrMinus 1e-5)
+      leopard2catPhrase.jc should be (leopard2catSynset.jc plusOrMinus 1e-5)
+      leopard2catPhrase.wuPalmer should be (leopard2catSynset.wuPalmer plusOrMinus 1e-5)
+    }
   }
 }
 
@@ -180,11 +257,39 @@ class DistributionalSimilaritySpec extends FunSpec with ShouldMatchers {
   }
 }
 
+class HungarianAlgorithmSpec extends FunSpec with ShouldMatchers {
+  import scalation.maxima.Hungarian
+  describe ("A square matrix of i*j") {
+    it ("should find a solution") {
+      val cost = DenseMatrix.zeros[Double](100, 100)
+      for (i <- 0 until 100; j <- 0 until 100) { cost(i,j) = i * j }
+      Hungarian(cost).solve() should be > (-1.0)
+    }
+    it ("should find the right solution") {
+      val cost = DenseMatrix.zeros[Double](100, 100)
+      for (i <- 0 until 100; j <- 0 until 100) { cost(i,j) = i * j }
+      Hungarian(cost).solve() should be (328350.0 plusOrMinus 0.25)
+    }
+  }
+  describe ("A rectangular matrix of i*j") {
+    it ("should find a solution") {
+      val cost = DenseMatrix.zeros[Double](10, 100)
+      for (i <- 0 until 10; j <- 0 until 100) { cost(i,j) = i * j }
+      Hungarian(cost).solve() should be > (-1.0)
+    }
+    it ("should find the right solution") {
+      val cost = DenseMatrix.zeros[Double](10, 100)
+      for (i <- 0 until 10; j <- 0 until 100) { cost(i,j) = i * j }
+      Hungarian(cost).solve() should be (4335.0 plusOrMinus 0.25)
+    }
+  }
+}
+
 class NormalizedDistanceSpec extends FunSpec with ShouldMatchers {
   import Globals._
   import Util._
    
-  private def bound(dist:(Seq[String],Seq[String])=>Double, n:Int = 100
+  private def bound(dist:(Seq[String],Seq[String])=>Double, n:Int = 10
       ):(Double, Double,Double) = {
     val (lower, upper, all) = ontology.ontology.keys.slice(0,n).zip(ontology.ontology.keys.slice(n, 2*n))
            .foldLeft( (Double.PositiveInfinity, Double.NegativeInfinity, List[Double]()) ) {
@@ -251,6 +356,12 @@ class NormalizedDistanceSpec extends FunSpec with ShouldMatchers {
   enforceBilinear("dice")
   
 }
+
+
+
+
+
+
 
 
 //

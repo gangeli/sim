@@ -3,7 +3,7 @@
 SCALA_HOME=${HOME}/programs/scala
 CORENLP_MODELS=${HOME}/lib/corenlp-models.jar
 # (places -- optionally overwrite me)
-CORENLP=${LIB}/stanford-corenlp-1.3.5.jar
+CORENLP=${LIB}/stanford-corenlp-1.3.5.jar:${LIB}/joda-time.jar:${LIB}/jollyday.jar
 # (programs)
 JAVAC=javac
 SCALAC=${SCALA_HOME}/bin/scalac
@@ -20,9 +20,10 @@ TMP=tmp
 DOC=scaladoc
 # (classpaths)
 CP=${CORENLP}:${LIB}/jaws.jar:${LIB}/breeze-math.jar:${LIB}/json.jar
+TEST_CP=${CP}:${LIB}/scalatest.jar:${DIST}/sim.jar
 
 # -- BUILD --
-${DIST}/sim.jar: $(wildcard src/org/goobs/sim/*.scala) $(wildcard src/org/goobs/sim/viz/*.scala) $(wildcard src/edu/stanford/nlp/*.scala)
+${DIST}/sim.jar: $(wildcard src/org/goobs/sim/*.scala) $(wildcard src/org/goobs/sim/viz/*.scala) $(wildcard src/edu/stanford/nlp/*.scala) $(wildcard src/scalation/maxima/*.scala)
 	@mkdir -p ${BUILD}
 	@echo "Compiling (${JAVAC})..."
 	@${JAVAC} -deprecation -d ${BUILD} -cp ${CP} `find ${SRC} -name "*.java"`
@@ -81,7 +82,7 @@ doc:
 ${DIST}/test.jar: $(wildcard test/src/org/goobs/sim/*.java) $(wildcard test/src/org/goobs/sim/*.scala) ${DIST}/sim.jar
 	mkdir -p ${TEST_BUILD}
 	mkdir -p ${DIST}
-	echo "Compiling (${SCALAC})..."
+	@echo "Compiling (${SCALAC})..."
 	${SCALAC} -deprecation -d ${TEST_BUILD} -cp ${TEST_CP} `find $(TEST_SRC) -name "*.scala"` `find ${TEST_SRC} -name "*.java"`
 	jar cf ${DIST}/test.jar -C $(TEST_BUILD) .
 	jar uf ${DIST}/test.jar -C $(TEST_SRC) .
@@ -91,7 +92,8 @@ default: ${DIST}/sim.jar
 
 release: ${DIST}/sim-release.jar
 test: ${DIST}/test.jar
-	@${SCALA} -J-Xmx2g -J-ea -cp ${TEST_CP}:${CORENLP_MODELS}:${DIST}/test.jar org.scalatest.run org.goobs.sim.WordnetOntologySpec org.goobs.sim.WordnetSimilaritySpec org.goobs.sim.DistributionalSimilaritySpec org.goobs.sim.NormalizedDistanceSpec
+	@${SCALA} -J-Xrunhprof:cpu=samples,depth=100 -J-Xmx2g -J-ea -cp ${TEST_CP}:${CORENLP_MODELS}:${DIST}/test.jar org.scalatest.run org.goobs.sim.HungarianAlgorithmSpec org.goobs.sim.WordnetOntologySpec org.goobs.sim.WordnetSimilaritySpec org.goobs.sim.DistributionalSimilaritySpec org.goobs.sim.NormalizedDistanceSpec
+#	@${SCALA} -J-Xmx2g -J-ea -cp ${TEST_CP}:${CORENLP_MODELS}:${DIST}/test.jar org.scalatest.run org.goobs.sim.WordnetNearestNeighborsSpec
 
 clean:
 	rm -rf ${BUILD}

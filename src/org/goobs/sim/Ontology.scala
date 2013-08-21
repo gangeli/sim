@@ -13,6 +13,9 @@ import java.io.ObjectOutputStream
 import java.util.zip.GZIPOutputStream
 //(jaws)
 import edu.smu.tspell.wordnet._
+import edu.smu.tspell.wordnet.impl.file.ReferenceSynset
+//(breeze)
+import breeze.linalg._
 //(lib)
 import edu.stanford.nlp.util.logging.Redwood.Util._
 //(project)
@@ -28,12 +31,19 @@ case class Ontology(ontology:Map[Phrase, Set[Ontology.RealNode]],
                     posRoots:Set[Ontology.Node]) {
   import Ontology._
 
+  //-------------------------
+  // AUXILLIARY DATA
+  //-------------------------
   def totalCount:Long = root.subtreeCount
 
   val depth:Int = 22 // computeDepth(root)
   def computeDepth(root:Node):Int = {
     if (root.hyponyms.isEmpty) 1
     else root.hyponyms.map{ computeDepth(_) }.max + 1
+  }
+
+  lazy val id2node:Map[String,RealNode] = {
+    ontology.values.flatten.map{ (node:RealNode) => node.id.map{ (id:String) => (id, node) } }.flatten.toMap
   }
     
   //-------------------------
@@ -71,7 +81,7 @@ case class Ontology(ontology:Map[Phrase, Set[Ontology.RealNode]],
    *  @param phrase The string to look for.
    *  @return True if the ontology contains the phrase.
    */
-  def contains(phrase:Seq[String]):Boolean = {
+  def contains(phrase:Traversable[String]):Boolean = {
     val phraseAsList:List[String] = phrase.toList
     if (ontology.contains(phraseAsList)) true
     else if (ontology.contains(phraseAsList.map{ _.toLowerCase })) true
@@ -85,7 +95,7 @@ case class Ontology(ontology:Map[Phrase, Set[Ontology.RealNode]],
    *  @param phrase The string to look for.
    *  @return A set of nodes corresponding to this phrase.
    */
-  def get(phrase:Seq[String]):Set[RealNode] = {
+  def get(phrase:Traversable[String]):Set[RealNode] = {
     ontology.get(phrase.toList) match {
       case Some(node) => node
       case None =>
@@ -104,9 +114,13 @@ case class Ontology(ontology:Map[Phrase, Set[Ontology.RealNode]],
    *  @return The most common node in the ontology, by its word count
    *          (_not_ subtree count)
    */
-  def apply(phrase:Seq[String]):RealNode = get(phrase).maxBy( _.count )
+  def apply(phrase:Traversable[String]):RealNode = get(phrase).maxBy( _.count )
   /** @see apply */
   def apply(phrase:String):RealNode = get(phrase).maxBy( _.count )
+
+  //-------------------------
+  // SIMILARITIES
+  //-------------------------
 
   /**
    *  Construct an object encapsulating the similarity between two phrases.
@@ -120,24 +134,28 @@ case class Ontology(ontology:Map[Phrase, Set[Ontology.RealNode]],
   /** @see sim */
   def sim(a:Node, b:Node):Similarity = sim(Set[Node](a), Set[Node](b))
 
+  private def massage(sent:Traversable[String]):Set[Node] = {
+    def filterFirstSense[A <: Node](set:Set[A], p:Traversable[String]):Set[A] = {
+      val candidate = set.filter{ (node:Node) =>
+        node match {
+          case (rn:RealNode) =>
+            rn.synset.getWordForms()(0).toLowerCase == p.mkString(" ").toLowerCase
+          case _ => true
+        }
+      }
+      if (candidate.size > 0) candidate else set
+    }
+    filterFirstSense(get(sent).toSet, sent)
+  }
+
   /** Returns the similarity between two phrases.
     * @see sim
     */
-  def sim(a:Seq[String], b:Seq[String]):Option[Similarity] = {
+  def sim(a:Traversable[String], b:Traversable[String]):Option[Similarity] = {
     if (!contains(a) || !contains(b)) {
       None
     } else {
-      def filterFirstSense[A <: Node](set:Set[A], p:Seq[String]):Set[A] = {
-        val candidate = set.filter{ (node:Node) =>
-          node match {
-            case (rn:RealNode) =>
-              rn.synset.getWordForms()(0).toLowerCase == p.mkString(" ").toLowerCase
-            case _ => true
-          }
-        }
-        if (candidate.size > 0) candidate else set
-      }
-      Some(sim(filterFirstSense(get(a).toSet, a), filterFirstSense(get(b).toSet, b)))
+      Some(sim(massage(a), massage(b)))
     }
   }
   
@@ -161,6 +179,86 @@ case class Ontology(ontology:Map[Phrase, Set[Ontology.RealNode]],
   /** @see sim */
   def sim(a:String, b:String):Option[Similarity]
     = sim(a.split("""\s+"""), b.split("""\s+"""))
+  
+  /** Returns the similarity between two sets of concepts.
+   *  The concepts are indexed by their synset id.
+   *  The format of synset ids is the concatenation of the
+   *  part of speech (see below) and the file offset. These are with respect
+   *  to WordNet 3.0.
+   * 
+   *  The POS tags are:
+   *        ADJECTIVE -- "a"
+   *        ADJECTIVE_SATELLITE -- "s"
+   *        ADVERB -- "r"
+   *        NOUN -- "n"
+   *        VERB -- "v"
+   */
+  def synsetSim(synsetA:Traversable[String], synsetB:Traversable[String]):Similarity
+    = sim(synsetA.map( id2node ).toSet,
+          synsetB.map( id2node ).toSet  )
+  
+  /** @see synsetSim */
+  def synsetSim(synsetA:String, synsetB:String):Similarity
+    = synsetSim(Set(synsetA), Set(synsetB))
+
+  //-------------------------
+  // NEAREST NEIGHBORS
+  //-------------------------
+
+//  // TODO(gabor) this won't compile even
+//  class NeighborProvider[T : Manifest](start:Node, popFrontier:Node=>Set[Node]): {
+//
+//    private def makeStream[T : Manifest](simFn:Similarity=>Double):Stream[T] = {
+//      // (the frontier of things to return)
+//      val frontier:PriorityQueue[Node]()(Ordering.fromLessThan(
+//        (a:Node, b:Node) => simFn(sim(start, a)) < simFn(sim(start, b)) ))
+//      val seen:HashSet[Node] = new HashSet[Node]
+//      // (actually create the stream)
+//      new Iterator[T] {
+//        override def hasNext:Boolean = !frontier.isEmpty
+//        override def next:T = {
+//          // (handle search)
+//          node:Node = frontier.dequeue
+//          val toAdd = popFrontier(node) &~ seen
+//          synchronized {
+//            seen ++= toAdd
+//            frontier ++= toAdd
+//          }
+//          // (handle cast)
+//          // TODO(gabor)
+//        }
+//      }.toStream
+//    }
+//
+//    def path:Stream[T] = makeStream( _.path )
+//  }
+//
+//  def neighbors[T : Manifest](node:Node):NeighborProvider[T] = {
+//    node.hyponyms.map( hyponym => 
+//    // TODO(gabor)
+//    Stream[T]()
+//  }
+//  def neighbors[T : Manifest](node:Set[Node]):Stream[T] = {
+//    // TODO(gabor)
+//    Stream[T]()
+//  }
+//  def neighbors[T : Manifest](sent:Sentence, backoff:Boolean=true):Option[Stream[T]] = {
+//    if (sent.length == 0) return None
+//    if (backoff) {
+//      Util.massage( sent, contains(_) ).flatMap( neighbors(_) )
+//    } else {
+//      neighbors(sent.words)
+//    }
+// }
+//  def neighbors[T : Manifest](sent:Seq[String]):Option[Stream[T]] = {
+//    if (!contains(sent)) { None } else { Some(neighbors(massage(sent))) }
+//  }
+//  def neighbors[T : Manifest](sent:String):Option[Stream[T]]
+//    = neighbors(sent.split("""\s+"""))
+
+  //-------------------------
+  // COLLECTION OPERATIONS
+  //-------------------------
 
   /**
    * Maps the ontology, and updates totalCount, etc to be consistent with
@@ -464,13 +562,15 @@ case class Ontology(ontology:Map[Phrase, Set[Ontology.RealNode]],
 }
 
 object Ontology {
+  //-------------------------
+  // Cache
+  //-------------------------
+  private val wordnet = WordNetDatabase.getFileInstance(); 
 
   //-------------------------
   // Utility Methods
   //-------------------------
-
-  private val wordnet = WordNetDatabase.getFileInstance(); 
-
+  
   val empty:Ontology
     = Ontology(Map[Phrase, Set[RealNode]](),
                new AbstractNode("ROOT", Set[Node]()), Set[Node]())
@@ -584,6 +684,21 @@ object Ontology {
 
     override def hashCode:Int = synset.hashCode
     override def toString:String = synset.getWordForms()(0)
+
+    def id:Option[String] = {
+      synset match {
+        case (ref:ReferenceSynset) =>
+          Some((ref.getType match {
+            case SynsetType.ADJECTIVE => "a"
+            case SynsetType.ADJECTIVE_SATELLITE => "s"
+            case SynsetType.ADVERB => "r"
+            case SynsetType.NOUN => "n"
+            case SynsetType.VERB => "v"
+            case _ => throw new IllegalStateException("Unknown synset type: " + ref.getType)
+          }) + String.format("%08d", new java.lang.Integer(ref.getOffset)))
+        case _ => None
+      }
+    }
   }
   
   //-------------------------
@@ -596,8 +711,65 @@ object Ontology {
   @SerialVersionUID(2l)
   case class Similarity(a:Set[Node], b:Set[Node], totalCount:Long) {
     /*
-     * Parameters
+     * Explicit aggregation
     */
+
+    private def sigmoid(x:Double):Double = 1.0 / (1.0 + scala.math.exp(-x))
+    private def inverseSigmoid(y:Double):Double = - scala.math.log(1 / y - 1)
+
+    /**
+      * Explicitly aggregate the maximum similarity between two sets of
+      * synsets. This is the default for most algorithms -- it is more efficient
+      * to simply call the algorithm in those cases.
+     */
+    def aggregateMax(sim:Similarity=>Double = _.exact):Double = {
+      a.map{ case (nodeA:RealNode) =>
+        b.map{ case (nodeB:RealNode) =>
+          sim(new Similarity(Set(nodeA), Set(nodeB), totalCount))
+        }
+      }.flatten.max
+    }
+    
+    /**
+      * Compute the highest sum similarity between the two sets of
+      * synsets. This uses the Hungarian algorithm for the graph matching.
+     */
+    def aggregateSum(sim:Similarity=>Double = _.exact):Double = {
+      import scalation.maxima.Hungarian
+      val smaller = if (scala.math.min(a.size, b.size) == a.size) a else b
+      val larger = if (scala.math.min(a.size, b.size) == a.size) b else a
+      val matrix = DenseMatrix.fill[Double](smaller.size, larger.size){ 0.0 }
+      for ((nA,iA) <- smaller.toList.zipWithIndex;
+           (nB,iB) <- larger.toList.zipWithIndex) {
+        matrix(iA, iB) = sim(new Similarity(Set(nA), Set(nB), totalCount))
+      }
+      Hungarian(matrix).solve( sigmoid(_), inverseSigmoid(_) )
+    }
+
+    /**
+     * Computes similarity between two sets of nodes, using a Jaccard
+     * (intersection / union) aggregation rather than the default 'max'
+     * aggregation.
+     *
+     * @param sim The similarity function to use
+     * @param doSigmoid If true, pass every similarity value through a sigmoid.
+     *        Even if this option is false, if the similarity is verifiably
+     *        not between 0 and 1 it will normalize it by passing it through
+     *        a sigmoid.
+     */
+    def aggregateJaccard(sim:Similarity=>Double = _.exact,
+                         doSigmoid:Boolean = false):Double = {
+      // check if sim() is [likely] between 0 and 1
+      val sampleNode = a.iterator.next
+      val identitySim:Double = sim( Similarity(Set(sampleNode), Set(sampleNode), totalCount) )
+      val likelyProbability:Boolean = scala.math.abs( identitySim - 1.0 ) < 1e-5
+      // aggregate
+      val intersection:Double = aggregateSum( (s:Similarity) =>
+        if (doSigmoid || !likelyProbability) sigmoid(sim(s)) else sim(s)
+      )
+      val union:Double = scala.math.max(a.size, b.size).toDouble
+      intersection / union
+    }
 
     /*
      * Cached values for similarity computation
@@ -827,6 +999,9 @@ object Ontology {
         }
       }.flatten.max
     }
+
+    /** Exact match */
+    def exact:Double = if (a == b) 1.0 else 0.0
 
     override def toString:String = {
       "" + a.maxBy( _.subtreeCount ) + " vs. " + b.maxBy( _.subtreeCount )
