@@ -466,7 +466,7 @@ object Similarity {
    * To run me, you have to have the wordnet directory passed as an environment variable,
    * "wordnet.database.dir" such as:
    *
-   * -Dwordnet.database.dir=/path/to/wordnet/WordNet-3.0/dict
+   * -Dwordnet.database.dir=/path/to/wordnet/WordNet-3.1/dict
    *
    * And, of course, ontology.ser.gz and distsim.ser.gz have to be at the locations defined
    * in the code below.

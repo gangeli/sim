@@ -33,7 +33,7 @@ Furthermore, if you have the models in implicit scope, you can call
 `Similarity(x, y)`, which will yield a `Similarity` object implementing all
 the metrics. For example (from the project root):
       
-     $ scala -Dwordnet.database.dir=aux/WordNet-3.0/dict -J-mx4g -cp dist/sim-release.jar
+     $ scala -Dwordnet.database.dir=aux/WordNet-3.1/dict -J-mx4g -cp dist/sim-release.jar
      
      scala> import org.goobs.sim._
      scala> implicit val wordnet = Ontology.load("aux/ontology.ser.gz")
@@ -46,7 +46,7 @@ For Java users, the `aux/JavaExample.java` file has a minimal Java program
 which uses the resource. It can be compiled and run with (from the project root):
 
      $ javac -cp dist/sim-release.jar aux/JavaExample.java
-     $ java  -cp dist/sim-release.jar:aux -Dwordnet.database.dir=aux/WordNet-3.0/dict -mx4g JavaExample
+     $ java  -cp dist/sim-release.jar:aux -Dwordnet.database.dir=aux/WordNet-3.1/dict -mx4g JavaExample
 
 Visualization
 ------
