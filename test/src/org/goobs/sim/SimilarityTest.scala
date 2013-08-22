@@ -214,19 +214,19 @@ class WordnetSimilaritySpec extends FunSpec with ShouldMatchers {
     }
   }
   
-  describe("The synset n02121620") {
+  describe("The synset n02124272") {
     it("should exist") {
-      ontology.id2node.get("n02121620") should be ('defined)
+      ontology.id2node.get("n02124272") should be ('defined)
     }
     it("should correspond to 'cat'") {
-      ontology.id2node.get("n02121620").get.toString should be ("cat")
+      ontology.id2node.get("n02124272").get.toString should be ("cat")
     }
   }
   
   describe("Synset similarities") {
     it("should match phrase similarities") {
       val leopard2catPhrase = ontology.sim("leopard", "cat").get
-      val leopard2catSynset = ontology.synsetSim("n02128385", "n02121620")
+      val leopard2catSynset = ontology.synsetSim("n02131037", "n02124272")
       leopard2catPhrase.path should be (leopard2catSynset.path plusOrMinus 1e-5)
       leopard2catPhrase.resnik should be (leopard2catSynset.resnik plusOrMinus 1e-5)
       leopard2catPhrase.lin should be (leopard2catSynset.lin plusOrMinus 1e-5)
