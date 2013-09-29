@@ -25,9 +25,17 @@ case class DistSim(vectors:Map[String,WordVector]) {
   def sim(a:WordVector, b:WordVector):Option[Similarity]
     = if (a == unk && b == unk) None else Some(Similarity(a, b))
   
-  def sim(a:String, b:String):Option[Similarity] = sim(apply(a), apply(b))
+  def sim(a:String, b:String):Option[Similarity] = {
+    if (a.contains(" ") || b.contains(" ")) {
+      sim(a.split("""\s+"""), b.split("""\s+"""));
+    } else {
+      sim(apply(a), apply(b))
+    }
+
+  }
   
   def sim(a:Seq[String], b:Seq[String]):Option[Similarity] = sim(apply(a), apply(b))
+  
 
   def sim(a:Sentence, b:Sentence, backoff:Boolean=true):Option[Similarity] = {
     if (a.length == 0 || b.length == 0) return None
