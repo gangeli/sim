@@ -68,3 +68,7 @@ accurate, but the distance between the added words may not be.
 If possible, a wordnet hierarchy is shown to in the right pane.
 
 
+License
+-----
+This library is released under the FreeBSD (2-clause) license, as of 2014 onwards.
+
